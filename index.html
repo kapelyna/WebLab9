@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IP Info</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <link rel="stylesheet" href="ip.css">
+    <script>
+        $(document).ready(function() {
+            $('#ipInput').keypress(function(event) {
+                var regex = /^[0-9.:]+$/;
+                var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                if (!regex.test(key)) {
+                    event.preventDefault();
+                    return false;
+                }
+            });
+
+            $('#jsonBtn').click(function() {
+                $.ajax({
+                    type: 'POST',
+                    url: 'ip_info_json.php',
+                    data: {ip: $('#ipInput').val()},
+                    success: function(response) {
+                        try {
+                            var data = (typeof response === 'object') ? response : JSON.parse(response);
+
+                            
+                            var geolocationInfo = '<p>Geolocation Information</p>';
+                            geolocationInfo += '<p>Country code: ' + (data.country_code || 'N/A') + '</p>';
+                            geolocationInfo += '<p>Flag: <img src="flags_ISO_3166-1/' + (data.country_code || '_unitednations') + '.png"></p>';
+                            geolocationInfo += '<p>Country: ' + (data.country || 'N/A') + '</p>';
+                            geolocationInfo += '<p>Region: ' + (data.region || 'N/A') + '</p>';
+                            geolocationInfo += '<p>Region code: ' + (data.regionName || 'N/A') + '</p>';
+                            geolocationInfo += '<p>City: ' + (data.city || 'N/A') + '</p>';
+                            geolocationInfo+='<p>Postal code: ' + (data.postal_code||'N/A') + '</p>';
+                            geolocationInfo += '<p>Latitude: ' + (data.latitude || 'N/A') + '</p>';
+                            geolocationInfo += '<p>Longitude: ' + (data.longitude || 'N/A') + '</p>';
+
+                            if (data.error) {
+                                // Обробка помилок, якщо вони є
+                                $('#result').html('<p>IP details for ' + data.ip_address + '</p><p>Error: ' + data.error + '</p>');
+                            } else {
+                                $('#result').html('<p>IP details ' + (data.ip_address||'['+data.message+']') + '</p>' + geolocationInfo);
+                            }
+                        } catch (e) {
+                            // Обробка помилок декодування JSON
+                            $('#result').html('Error: Invalid JSON format');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Обробка помилок Ajax-запиту
+                        $('#result').html('Error: ' + error);
+                    }
+                });
+            });
+
+            $('#xmlBtn').click(function() {
+                $.ajax({
+                    type: 'POST',
+                    url: 'ip_info_xml.php',
+                    data: {ip: $('#ipInput').val()},
+                    success: function(data) {
+                        $('#result').text('');
+
+                        var $xml = $(data);
+                        
+                        $('#result').append('<p>IP details ' + ($xml.find('ip_address').text()||$xml.find('ip_address').text() + ' [' + $xml.find('message').text() + ']')+'</p>');
+                        $('#result').append('<p>Geolocation Information</p>');
+                        $('#result').append('<p>Country code: ' + ($xml.find('country_code').text()||'N/A')+'</p>');
+                        $('#result').append('<p>Flag: <img src="/flags_ISO_3166-1/' + ($xml.find('country_code').text()||'_unitednations')+'.png">');
+                        $('#result').append('<p>Country name: ' + ($xml.find('country').text()||'N/A')+'</p>');
+                        $('#result').append('<p>Region: ' + ($xml.find('region').text()||'N/A')+'</p>');
+                        $('#result').append('<p>Region name: ' + ($xml.find('regionName').text()||'N/A')+'</p>');
+                        $('#result').append('<p>City: ' + ($xml.find('city').text()||'N/A')+'<p>');
+                        $('#result').append('<p>Postal code: ' + ($xml.find('postal_code').text()||'N/A')+'</p>');
+                        $('#result').append('<p>Latitude: ' + ($xml.find('latitude').text()||'N/A')+'</p>');
+                        $('#result').append('<p>Longitude: ' + ($xml.find('longitude').text()||'N/A')+'<p>');
+                        
+                    },
+                    error: function(xhr, status, error) {
+                        // Обробка помилок Ajax-запиту
+                        $('#result').html('Error: ' + error);
+                    }
+                });
+            });
+        });
+
+           
+       
+    </script>
+</head>
+<body>
+    <form>
+        <label for="ipInput">Enter IP Address:</label>
+        <input type="text" id="ipInput">
+        <button type="button" id="jsonBtn">Get JSON</button>
+        <button type="button" id="xmlBtn">Get XML</button>
+    </form>
+    <div id="result"></div>
+</body>
+</html>
